@@ -19,7 +19,10 @@ FONT_SCALE = 1.0                 # make all text bigger/smaller (e.g. 1.2)
 MODE     = "fit"                 # "fit" = crisp integer scale, centred, board texture around it
                                  # "cover" = fill the screen (crops top/bottom a little)
 POLL     = 1                     # seconds between player checks
-REFRESH  = 15                    # also redraw every N s so the progress bar/clock move (0 = only on track/state change)
+REFRESH  = 0                    # also redraw every N s so the progress bar/clock move (0 = only on track/state change)
+IDLE_IMAGE   = "/home/ernie/Downloads/_LEN0272.jpg"   # path to your own default wallpaper, or "" to draw the MOTHERBOARD screen as "Nothing playing"
+IDLE_REFRESH = 60   # seconds between idle redraws so the clock stays right (ignored if IDLE_IMAGE is set)
+SHOW_PROGRESS = False            # progress bar + elapsed/remaining times along the bottom
 # ──────────────────────────────────────────────────────────
 
 HERE    = Path(__file__).resolve().parent
@@ -210,6 +213,9 @@ def get_state():
                 loop=p[8], shuffle=p[9].lower() == "true", player=p[10])
 
 _art_cache = {}
+def idle_state():
+    return dict(status="Stopped", title="Nothing playing", artist="", album="MOTHERBOARD",
+                art="", pos=0, length=0, volume=0.0, loop="None", shuffle=False, player="idle")
 def fetch_art(url):
     if not url:
         return None
@@ -276,12 +282,13 @@ def render_native(s, A):
     ov.append(("text", (35, 79, 178, 18), s["artist"], 14, False, "l"))
     ov.append(("text", (35, 98, 175, 15), f"{s['player'].upper()} // {s['status'].upper()}", 12, False, "l"))
 
-    frac = max(0.0, min(1.0, (s["pos"] / s["length"]) if s["length"] else 0))
-    c.alpha_composite(A["pb_back"], (35, 234))
-    if round(247 * frac):
-        c.alpha_composite(A["pb"].crop((0, 0, round(247 * frac), 3)), (35, 234))
-    ov.append(("text", (2, 228, 32, 12), mmss(s["pos"]), 11, False, "c"))
-    ov.append(("text", (284, 228, 32, 12), mmss(max(0, s["length"] - s["pos"])), 11, False, "c"))
+    if SHOW_PROGRESS:
+        frac = max(0.0, min(1.0, (s["pos"] / s["length"]) if s["length"] else 0))
+        c.alpha_composite(A["pb_back"], (35, 234))
+        if round(247 * frac):
+            c.alpha_composite(A["pb"].crop((0, 0, round(247 * frac), 3)), (35, 234))
+        ov.append(("text", (2, 228, 32, 12), mmss(s["pos"]), 11, False, "c"))
+        ov.append(("text", (284, 228, 32, 12), mmss(max(0, s["length"] - s["pos"])), 11, False, "c"))
     return c, ov
 
 
@@ -354,14 +361,26 @@ def main():
         return
 
     subprocess.run(["gsettings", "set", "org.gnome.desktop.background", "picture-options", "zoom"])
+    for k, v in (("primary-color", "'#000000'"), ("secondary-color", "'#000000'"),
+             ("color-shading-type", "'solid'")):
+        subprocess.run(["gsettings", "set", "org.gnome.desktop.background", k, v])
     last_key, last_draw = None, 0
     while True:
         s = get_state()
         if s and s["status"] in ("Playing", "Paused"):
             key = (s["title"], s["artist"], s["status"], s["art"])
-            if key != last_key or (REFRESH and time.time() - last_draw >= REFRESH):
-                set_wallpaper(to_screen(*render_native(s, A), A))
-                last_key, last_draw = key, time.time()
+            interval = REFRESH
+        else:
+            s, key = idle_state(), ("idle",)
+            interval = 0 if IDLE_IMAGE else IDLE_REFRESH
+
+        if key != last_key or (interval and time.time() - last_draw >= interval):
+            if key == ("idle",) and IDLE_IMAGE:
+                img = Image.open(os.path.expanduser(IDLE_IMAGE)).convert("RGB")
+            else:
+                img = to_screen(*render_native(s, A), A)
+            set_wallpaper(img)
+            last_key, last_draw = key, time.time()
         time.sleep(POLL)
 
 
