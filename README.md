@@ -21,6 +21,9 @@ Config: edit the block at the top of rockpaper.py
   - REFRESH  seconds between progress-bar redraws (0 = only on track/state change)
   - 15s is lowest i can go before it starts flashing, due to limitiations with GNOME
 
+Example:
+![example](DEMO.png "example")
+
 Credit: MOTHERBOARD theme by Monica G.
 * Visual assets and bitmap layouts were adapted from the [MOTHERBOARD](https://github.com/mgingras-png/MOTHERBOARD) theme by [mgingras-png](https://github.com/mgingras-png). * The original assets are dedicated to the public domain under the **[Creative Commons Zero v1.0 Universal (CC0 1.0)](https://creativecommons.org)** license. I appreciate the author's decision to share their work freely!
 
