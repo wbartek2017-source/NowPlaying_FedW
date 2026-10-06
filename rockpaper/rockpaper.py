@@ -16,13 +16,15 @@ SCREEN   = (1920, 1080)          # your monitor resolution
 BG_COLOR = (0x25, 0xC2, 0x53)    # theme "background color" (25C253). Try any colour!
 FONT     = "terminal"            # "terminal" = same font as your terminal; or a family name e.g. "JetBrains Mono"; "" = system monospace
 FONT_SCALE = 1.0                 # make all text bigger/smaller (e.g. 1.2)
-MODE     = "fit"                 # "fit" = crisp integer scale, centred, board texture around it
+MODE     = "cover"                 # "fit" = crisp integer scale, centred, board texture around it
                                  # "cover" = fill the screen (crops top/bottom a little)
 POLL     = 1                     # seconds between player checks
 REFRESH  = 0                    # also redraw every N s so the progress bar/clock move (0 = only on track/state change)
 IDLE_IMAGE   = "/home/ernie/Downloads/_LEN0272.jpg"   # path to your own default wallpaper, or "" to draw the MOTHERBOARD screen as "Nothing playing"
 IDLE_REFRESH = 60   # seconds between idle redraws so the clock stays right (ignored if IDLE_IMAGE is set)
 SHOW_PROGRESS = False            # progress bar + elapsed/remaining times along the bottom
+ART_MARGIN = 32                  # cover mode: gap in screen pixels between the album art and the bottom edge
+
 # ──────────────────────────────────────────────────────────
 
 HERE    = Path(__file__).resolve().parent
@@ -213,6 +215,23 @@ def get_state():
                 loop=p[8], shuffle=p[9].lower() == "true", player=p[10])
 
 _art_cache = {}
+def system_volume():
+    """Master volume 0..1 (0 if muted): PipeWire first (Fedora's default), then PulseAudio."""
+    try:
+        out = subprocess.run(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"],
+                             capture_output=True, text=True, timeout=2).stdout
+        if out.startswith("Volume:"):
+            return 0.0 if "MUTED" in out else float(out.split()[1])
+    except Exception:
+        pass
+    try:
+        out = subprocess.run(["pactl", "get-sink-volume", "@DEFAULT_SINK@"],
+                             capture_output=True, text=True, timeout=2).stdout
+        mute = subprocess.run(["pactl", "get-sink-mute", "@DEFAULT_SINK@"],
+                              capture_output=True, text=True, timeout=2).stdout
+        return 0.0 if "yes" in mute else int(out.split("/")[1].strip().rstrip("%")) / 100
+    except Exception:
+        return None
 def idle_state():
     return dict(status="Stopped", title="Nothing playing", artist="", album="MOTHERBOARD",
                 art="", pos=0, length=0, volume=0.0, loop="None", shuffle=False, player="idle")
@@ -300,7 +319,9 @@ def to_screen(native, ov, A):
         k = max(1, min(sw // NW, sh // NH))
     uw, uh = round(NW * k), round(NH * k)
     ox, oy = (sw - uw) // 2, (sh - uh) // 2
-
+    if MODE == "cover":              # slide the UI up so the album art sits just above the bottom edge
+        want = sh - ART_MARGIN - round((100 + 92) * k)
+        oy = max(sh - uh, min(0, want))
     # surround: dimmed board texture (only visible in "fit" mode)
     kk = max(sw / NW, sh / NH)
     fill = A["backdrop"].resize((round(NW * kk), round(NH * kk)), Image.NEAREST)
@@ -365,17 +386,25 @@ def main():
              ("color-shading-type", "'solid'")):
         subprocess.run(["gsettings", "set", "org.gnome.desktop.background", k, v])
     last_key, last_draw = None, 0
+    last_key, last_draw = None, 0
     while True:
         s = get_state()
-        if s and s["status"] in ("Playing", "Paused"):
-            key = (s["title"], s["artist"], s["status"], s["art"])
-            interval = REFRESH
+        playing = bool(s) and s["status"] in ("Playing", "Paused")
+        if not playing:
+            s = idle_state()
+        sv = system_volume()
+        if sv is not None:
+            s["volume"] = sv
+        vol = round(s["volume"] * 100)
+
+        if playing:
+            key, interval = (s["title"], s["artist"], s["status"], s["art"], vol), REFRESH
         else:
-            s, key = idle_state(), ("idle",)
+            key = ("idle",) if IDLE_IMAGE else ("idle", vol)
             interval = 0 if IDLE_IMAGE else IDLE_REFRESH
 
         if key != last_key or (interval and time.time() - last_draw >= interval):
-            if key == ("idle",) and IDLE_IMAGE:
+            if not playing and IDLE_IMAGE:
                 img = Image.open(os.path.expanduser(IDLE_IMAGE)).convert("RGB")
             else:
                 img = to_screen(*render_native(s, A), A)
