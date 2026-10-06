@@ -1,4 +1,5 @@
 A now playing background for Fedora Workstation (GNOME) based on the rockbox theme MOTHERBOARD by mgingras-png
+- It should work on other distros that use GNOME for their DE, but it has not been tested.
 
 ## Dependancies
 
