@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Rockpaper
+Comment=MOTHERBOARD now-playing wallpaper
+Exec=python3 %h/.local/share/rockpaper/rockpaper.py
+X-GNOME-Autostart-enabled=true
