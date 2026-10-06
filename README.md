@@ -13,10 +13,11 @@ To test without touching your wallpaper
   python3 rockpaper.py --demo      -> writes demo.png
 
 Config: edit the block at the top of rockpaper.py
-  SCREEN   your monitor resolution
-  BG_COLOR theme colour (default 25C253 green, same as the theme's cfg)
-  MODE     "fit" (crisp 4x, textured surround) or "cover"
-  REFRESH  seconds between progress-bar redraws (0 = only on track/state change)
+  - SCREEN   your monitor resolution
+  - BG_COLOR theme colour (default 25C253 green, same as the theme's cfg)
+  - IDLE_IMAGE - The image you want as your background while no media is playing
+  - MODE     "fit" (crisp 4x, textured surround) or "cover"
+  - REFRESH  seconds between progress-bar redraws (0 = only on track/state change)
   - 15s is lowest i can go before it starts flashing, due to limitiations with GNOME
 
 Credit: MOTHERBOARD theme by Monica G.
