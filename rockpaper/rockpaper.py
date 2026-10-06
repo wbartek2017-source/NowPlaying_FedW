@@ -20,7 +20,7 @@ MODE     = "cover"                 # "fit" = crisp integer scale, centred, board
                                  # "cover" = fill the screen (crops top/bottom a little)
 POLL     = 1                     # seconds between player checks
 REFRESH  = 0                    # also redraw every N s so the progress bar/clock move (0 = only on track/state change)
-IDLE_IMAGE   = "/home/ernie/Downloads/_LEN0272.jpg"   # path to your own default wallpaper, or "" to draw the MOTHERBOARD screen as "Nothing playing"
+IDLE_IMAGE   = ""   # path to your own default wallpaper, or "" to draw the MOTHERBOARD screen as "Nothing playing"
 IDLE_REFRESH = 60   # seconds between idle redraws so the clock stays right (ignored if IDLE_IMAGE is set)
 SHOW_PROGRESS = False            # progress bar + elapsed/remaining times along the bottom
 ART_MARGIN = 32                  # cover mode: gap in screen pixels between the album art and the bottom edge
